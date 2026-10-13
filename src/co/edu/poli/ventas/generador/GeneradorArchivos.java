@@ -180,9 +180,9 @@ public final class GeneradorArchivos {
      * </p>
      * <p>
      * Como el tipo de documento no forma parte de los argumentos de este
-     * metodo, se asigna el valor por defecto {@code "CC"}. Si se requiere un
-     * tipo de documento distinto, puede ajustarse editando la constante
-     * correspondiente dentro de esta clase.
+     * metodo, se busca en {@code data/vendedores.txt} el vendedor con ese
+     * numero de documento y se usa su tipo registrado, para que ambos
+     * archivos sean coherentes. Si no se encuentra, se usa {@code "CC"}.
      * </p>
      *
      * @param randomSalesCount cantidad de ventas pseudoaleatorias a generar;
@@ -207,12 +207,12 @@ public final class GeneradorArchivos {
 
         crearCarpetaSiNoExiste(CARPETA_VENTAS);
 
-        String tipoDocumentoPorDefecto = "CC";
+        String tipoDocumento = buscarTipoDocumento(id);
         String nombreArchivo = "ventas_" + normalizarNombreArchivo(name) + "_" + id + ".txt";
         Path rutaArchivo = Paths.get(CARPETA_VENTAS, nombreArchivo);
 
         try (BufferedWriter escritor = Files.newBufferedWriter(rutaArchivo, StandardCharsets.UTF_8)) {
-            escritor.write(tipoDocumentoPorDefecto + ";" + id);
+            escritor.write(tipoDocumento + ";" + id);
             escritor.newLine();
 
             for (int i = 0; i < randomSalesCount; i++) {
@@ -257,6 +257,31 @@ public final class GeneradorArchivos {
         }
 
         return productos;
+    }
+
+    /**
+     * Busca en el archivo de vendedores el tipo de documento registrado para
+     * el numero de documento indicado.
+     *
+     * @param numeroDocumento numero de documento del vendedor
+     * @return el tipo de documento registrado, o {@code "CC"} si el archivo
+     *         no existe o el vendedor no se encuentra
+     * @throws IOException si ocurre un error de lectura
+     */
+    private static String buscarTipoDocumento(long numeroDocumento) throws IOException {
+        Path rutaArchivo = Paths.get(ARCHIVO_VENDEDORES);
+        if (Files.exists(rutaArchivo)) {
+            try (BufferedReader lector = Files.newBufferedReader(rutaArchivo, StandardCharsets.UTF_8)) {
+                String linea;
+                while ((linea = lector.readLine()) != null) {
+                    String[] campos = linea.split(";");
+                    if (campos.length >= 2 && campos[1].trim().equals(String.valueOf(numeroDocumento))) {
+                        return campos[0].trim();
+                    }
+                }
+            }
+        }
+        return "CC";
     }
 
     /**
